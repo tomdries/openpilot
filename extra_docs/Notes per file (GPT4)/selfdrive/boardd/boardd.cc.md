@@ -1,0 +1,9 @@
+This code defines a class called Panda, which is responsible for communication with a Panda device, a car interface hardware that connects to a vehicle's OBD-II port. The class handles various functionalities such as setting safety models, getting hardware type, reading and setting the device's real-time clock, controlling the fan speed, reading device health state, handling can bus communication (send and receive), and managing power-saving features.
+
+The class constructor initializes the communication interface (USB or SPI) and sets the bus offset. The connected() and comms_healthy() methods return the connection status and communication health status, respectively.
+
+The code also contains methods for setting the safety model, alternative experience, and real-time clock. It provides methods for getting the hardware type, real-time clock, fan speed, device health state, firmware version, and serial number.
+
+Additionally, the code provides methods for setting power-saving mode, enabling deep sleep, sending heartbeats, and configuring the can bus speed and data speed. The can_send() and can_receive() methods handle sending and receiving can bus data, while the can_reset_communications() method resets the communication.
+
+The code also contains helper functions for handling can bus data, such as len_to_dlc(), which converts the data length to data length code, pack_can_buffer() for packing can data into a buffer, and unpack_can_buffer() for extracting can data from the buffer. It also has a function, calculate_checksum(), for calculating the checksum of a given data buffer.

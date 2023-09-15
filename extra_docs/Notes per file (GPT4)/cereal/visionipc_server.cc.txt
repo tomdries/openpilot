@@ -1,0 +1,4 @@
+This C++ code defines a VisionIpcServer class for managing vision buffers and handling data transfer between a server and connected clients. The server creates and manages buffers for different vision stream types, listens for incoming client connections, and sends data over sockets. The class also contains utility functions for creating buffers, getting available buffers, and sending buffers with additional data. The destructor for the VisionIpcServer class ensures cleanup of allocated buffers and messaging resources.
+
+what does ipc mean
+IPC stands for Inter-Process Communication. It is a mechanism that allows different processes or programs to communicate and exchange data with each other. IPC mechanisms can include shared memory, pipes, sockets, message queues, and other methods for passing information between separate processes. In this code, IPC is used to facilitate communication between the server and connected clients.
