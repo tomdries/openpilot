@@ -13,6 +13,7 @@ import psutil
 
 import cereal.messaging as messaging
 from cereal import log
+from cereal.services import SERVICE_LIST
 from openpilot.common.dict_helpers import strip_deprecated_keys
 from openpilot.common.time import MIN_DATE
 from openpilot.common.filter_simple import FirstOrderFilter
@@ -33,7 +34,7 @@ NetworkStrength = log.DeviceState.NetworkStrength
 CURRENT_TAU = 15.   # 15s time constant
 TEMP_TAU = 5.   # 5s time constant
 DISCONNECT_TIMEOUT = 5.  # wait 5 seconds before going offroad after disconnect so you get an alert
-PANDA_STATES_TIMEOUT = int(1000 * 1.5 * DT_TRML)  # 1.5x the expected pandaState frequency
+PANDA_STATES_TIMEOUT = round(1000 / SERVICE_LIST['pandaStates'].frequency * 1.5)  # 1.5x the expected pandaState frequency
 
 ThermalBand = namedtuple("ThermalBand", ['min_temp', 'max_temp'])
 HardwareState = namedtuple("HardwareState", ['network_type', 'network_info', 'network_strength', 'network_stats',
@@ -80,7 +81,7 @@ def read_tz(x):
 
 
 def read_thermal(thermal_config):
-  dat = messaging.new_message('deviceState')
+  dat = messaging.new_message('deviceState', valid=True)
   dat.deviceState.cpuTempC = [read_tz(z) / thermal_config.cpu[1] for z in thermal_config.cpu[0]]
   dat.deviceState.gpuTempC = [read_tz(z) / thermal_config.gpu[1] for z in thermal_config.gpu[0]]
   dat.deviceState.memoryTempC = read_tz(thermal_config.mem[0]) / thermal_config.mem[1]
@@ -209,6 +210,10 @@ def thermald_thread(end_event, hw_queue) -> None:
 
   while not end_event.is_set():
     sm.update(PANDA_STATES_TIMEOUT)
+
+    # Run at 2Hz
+    if sm.frame % round(SERVICE_LIST['pandaStates'].frequency * DT_TRML) != 0:
+      continue
 
     pandaStates = sm['pandaStates']
     peripheralState = sm['peripheralState']

@@ -11,10 +11,11 @@ cdef extern from "common/params.h":
     CLEAR_ON_MANAGER_START
     CLEAR_ON_ONROAD_TRANSITION
     CLEAR_ON_OFFROAD_TRANSITION
+    DEVELOPMENT_ONLY
     ALL
 
   cdef cppclass c_Params "Params":
-    c_Params(string) nogil
+    c_Params(string) except + nogil
     string get(string, bool) nogil
     bool getBool(string, bool) nogil
     int remove(string) nogil
