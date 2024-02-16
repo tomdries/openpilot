@@ -30,6 +30,7 @@ class SimulatedCar:
 
   def send_can_messages(self, simulator_state: SimulatorState):
     if not simulator_state.valid:
+      # print('simulatedcar.send_can_messages: simulator_state is not valid') # DEBUG
       return
 
     msg = []

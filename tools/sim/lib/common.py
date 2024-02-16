@@ -92,3 +92,7 @@ class World(ABC):
   @abstractmethod
   def reset(self):
     pass
+
+  # @abstractmethod
+  # def log_openpilot_data(self, simulator_state: SimulatorState):
+  #   pass

@@ -173,13 +173,14 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
 
       self.world.apply_controls(steer_out, throttle_out, brake_out)
       self.world.read_sensors(self.simulator_state)
+      self.world.log_openpilot_data(self.simulator_state)   
 
       if self.rk.frame % self.TICKS_PER_FRAME == 0:
         self.world.tick()
         self.world.read_cameras()
 
       if self.rk.frame % 25 == 0:
-        self.print_status()
+        self.print_status()        
 
       self.started = True
 

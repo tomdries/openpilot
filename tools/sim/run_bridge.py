@@ -8,6 +8,7 @@ from multiprocessing import Queue
 from openpilot.tools.sim.bridge.common import SimulatorBridge
 from openpilot.tools.sim.bridge.carla.carla_bridge import CarlaBridge
 from openpilot.tools.sim.bridge.metadrive.metadrive_bridge import MetaDriveBridge
+from openpilot.tools.sim.bridge.video.video_bridge import VideoBridge
 
 
 def parse_args(add_args=None):
@@ -23,6 +24,10 @@ def parse_args(add_args=None):
   parser.add_argument('--host', dest='host', type=str, default=os.environ.get("CARLA_HOST", '127.0.0.1'))
   parser.add_argument('--port', dest='port', type=int, default=2000)
 
+  # Video specific
+  parser.add_argument('--video_file', dest='video_file', type=str, default='')
+  # parser.add_argument('--telemetry', action='store_true')
+
   return parser.parse_args(add_args)
 
 if __name__ == "__main__":
@@ -34,6 +39,9 @@ if __name__ == "__main__":
     simulator_bridge = CarlaBridge(args)
   elif args.simulator == "metadrive":
     simulator_bridge = MetaDriveBridge(args)
+  elif args.simulator == "video":
+    simulator_bridge = VideoBridge(args)
+  
   else:
     raise AssertionError("simulator type not supported")
   p = simulator_bridge.run(q)
