@@ -8,6 +8,8 @@ class VideoBridge(SimulatorBridge):
   def __init__(self, arguments):
     super().__init__(arguments)
     self.video_file = Path(arguments.video_file)    
+
+    # Todo - make telematics optional
     self.telematics_file = self.video_file.with_name(self.video_file.stem + '.csv')
     # self.sm = messaging.SubMaster(['modelV2', 'carState'])
     
