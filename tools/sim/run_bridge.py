@@ -26,7 +26,8 @@ def parse_args(add_args=None):
 
   # Video specific
   parser.add_argument('--video_file', dest='video_file', type=str, default='')
-  # parser.add_argument('--telemetry', action='store_true')
+  parser.add_argument('--telematics_file', dest='telematics_file', type=str, default='')
+  parser.add_argument('--t0', dest='t0', type=float, default=0.0)
 
   return parser.parse_args(add_args)
 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     simulator_bridge = MetaDriveBridge(args)
   elif args.simulator == "video":
     simulator_bridge = VideoBridge(args)
-  
+
   else:
     raise AssertionError("simulator type not supported")
   p = simulator_bridge.run(q)

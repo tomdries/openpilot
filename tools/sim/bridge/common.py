@@ -25,13 +25,13 @@ def rk_loop(function, hz, exit_event: threading.Event):
 
 
 class SimulatorBridge(ABC):
-  TICKS_PER_FRAME = 5
+  TICKS_PER_FRAME = 5 # was 5
 
   def __init__(self, arguments):
     set_params_enabled()
     self.params = Params()
 
-    self.rk = Ratekeeper(100, None)
+    self.rk = Ratekeeper(100, None) # was 100
 
     self.dual_camera = arguments.dual_camera
     self.high_quality = arguments.high_quality
@@ -65,8 +65,6 @@ class SimulatorBridge(ABC):
     self._exit_event.set()
 
     if self.world is not None:
-      self.world.csv_logger.flush()
-      print("World closed")
       self.world.close()
 
   def run(self, queue, retries=-1):
@@ -177,9 +175,9 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
       self.world.read_sensors(self.simulator_state)
 
       if self.rk.frame % self.TICKS_PER_FRAME == 0:
+        self.world.log_openpilot_data(self.simulator_state)
         self.world.tick()
         self.world.read_cameras()
-        self.world.log_openpilot_data(self.simulator_state)
 
       if self.rk.frame % 25 == 0:
         self.print_status()

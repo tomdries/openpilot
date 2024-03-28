@@ -7,24 +7,24 @@ class VideoBridge(SimulatorBridge):
 
   def __init__(self, arguments):
     super().__init__(arguments)
-    self.video_file = Path(arguments.video_file)    
+    self.video_file = Path(arguments.video_file)
 
-    # Todo - make telematics optional
-    self.telematics_file = self.video_file.with_name(self.video_file.stem + '.csv')
+    # self.telematics_file = self.video_file.with_name(self.video_file.stem + '.csv')
+
+    self.telematics_file = Path(arguments.telematics_file)
+    self.t0= arguments.t0
+
     # self.sm = messaging.SubMaster(['modelV2', 'carState'])
-    
 
     # other init things (self.xxx)
 
   def spawn_world(self):
-  
-    return VideoWorld(self.video_file, self.telematics_file, dual_camera=self.dual_camera)
-  
+    return VideoWorld(self.video_file, self.telematics_file, self.t0, dual_camera=self.dual_camera)
+
   def print_status(self):
-    print(f"""State:
-Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_engaged}
-    """)
+#     print(f"""State:
+# Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_engaged}
+# Blinker: {self.simulator_state.left_blinker} {self.simulator_state.right_blinker}
+#     """)
+    pass
 
-
-    
-    
