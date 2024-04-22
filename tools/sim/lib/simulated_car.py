@@ -109,6 +109,7 @@ class SimulatedCar:
       'safetyModel': 'hondaNidec',
       'alternativeExperience': self.sm["carParams"].alternativeExperience
     }
+
     self.pm.send('pandaStates', dat)
 
   def update(self, simulator_state: SimulatorState):
