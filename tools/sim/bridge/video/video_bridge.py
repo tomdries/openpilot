@@ -11,7 +11,11 @@ class VideoBridge(SimulatorBridge):
 
     # self.telematics_file = self.video_file.with_name(self.video_file.stem + '.csv')
 
-    self.telematics_file = Path(arguments.telematics_file)
+    if arguments.telematics_file is None:
+      self.telematics_file = None
+    else:
+      self.telematics_file = Path(arguments.telematics_file)
+
     self.t0= arguments.t0
 
     # self.sm = messaging.SubMaster(['modelV2', 'carState'])
@@ -22,9 +26,5 @@ class VideoBridge(SimulatorBridge):
     return VideoWorld(self.video_file, self.telematics_file, self.t0, dual_camera=self.dual_camera)
 
   def print_status(self):
-#     print(f"""State:
-# Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_engaged}
-# Blinker: {self.simulator_state.left_blinker} {self.simulator_state.right_blinker}
-#     """)
     pass
 

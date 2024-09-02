@@ -26,7 +26,7 @@ def parse_args(add_args=None):
 
   # Video specific
   parser.add_argument('--video_file', dest='video_file', type=str, default='')
-  parser.add_argument('--telematics_file', dest='telematics_file', type=str, default=None)
+  parser.add_argument('--telematics_file', dest='telematics_file', type=str, default='')
   parser.add_argument('--t0', dest='t0', type=float, default=0.0)
 
   return parser.parse_args(add_args)

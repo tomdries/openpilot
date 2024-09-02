@@ -4,7 +4,7 @@ import cv2
 import csv
 from time import time
 from openpilot.tools.sim.lib.camerad import W, H
-from openpilot.tools.sim.lib.video_helpers import parse_struct, HEADER_META, HEADER_CALIBRATION
+from openpilot.tools.sim.lib.video_helpers import parse_struct, HEADER_META, HEADER_CALIBRATION, HEADER_LATERALPLAN, HEADER_LONGITUDINALPLAN, HEADER_CARSTATE
 from openpilot.tools.sim.bridge.common import World
 from openpilot.tools.sim.lib.common import SimulatorState, vec3
 import cereal.messaging as messaging
@@ -41,26 +41,6 @@ class VideoReader:
         self.video_file.release()
 
 
-# class VideoReader:
-#   def __init__(self, video_path, t_start):
-#     self.video_file = cv2.VideoCapture(str(video_path))
-#     if not self.video_file.isOpened():
-#       raise ValueError("Error opening video file")
-#     ret,self.frame=self.video_file.read()
-#     self.start_frame=0
-
-#   def read(self):
-#     ret, frame = self.video_file.read()
-#     if ret:
-#       return frame
-#     else:
-#       self.close()
-#       return None
-
-#   def close(self):
-#     self.video_file.release()
-
-
 class CsvLogger:
     def __init__(self, csv_out, header=None, buffer_size=1000):
         # Create a new CSV file (even if exists) and write the header
@@ -89,21 +69,32 @@ class VideoWorld(World):
   def __init__(self, video_path=None, telematics_path=None, t_start=0, dual_camera=False):
     super().__init__(dual_camera)
     self.t0_world = time()
-
-    self.telematics_path = telematics_path
-    self.telematics_data = pd.read_csv(self.telematics_path)
-    ALLOWED_TELEMATICS_COLUMNS = ['frame', 'vehicle_speed', 'steer', 'throttle', 'brake', 'yaw', 'position_x', 'position_y',
-                                  'accel_x', 'accel_y', 'accel_z', 'gyro_x', 'gyro_y', 'gyro_z', 'blinker_left', 'blinker_right']
-    columns = [x for x in self.telematics_data.columns if x in ALLOWED_TELEMATICS_COLUMNS]
-    self.telematics_data = self.telematics_data[columns]
+    if telematics_path is not None:
+      self.telematics_path = telematics_path
+      self.telematics_data = pd.read_csv(self.telematics_path)
+      ALLOWED_TELEMATICS_COLUMNS = ['frame', 'vehicle_speed', 'steer', 'throttle', 'brake', 'yaw', 'position_x', 'position_y',
+                                    'accel_x', 'accel_y', 'accel_z', 'gyro_x', 'gyro_y', 'gyro_z', 'blinker_left', 'blinker_right']
+      columns = [x for x in self.telematics_data.columns if x in ALLOWED_TELEMATICS_COLUMNS]
+      self.telematics_data = self.telematics_data[columns]
 
     # load video file using opencv
     self.video = VideoReader(video_path, t_start)
     self.video_frame = self.video.start_frame
 
+    csv_header = (
+                 ['logging_time', 'frame_nr']
+                 + [f'meta.{x}' for x in HEADER_META]
+                 + [f'longitudinalPlan.{x}' for x in HEADER_LONGITUDINALPLAN]
+                 + [f'lateralPlan.{x}' for x in HEADER_LATERALPLAN]
+                 + ['lead1', 'lead2', 'lead3']
+                 + ['vEgo']
+                 + ['leftBlinker']
+                 + ['rightBlinker']
+    )
+
     self.csv_logger = CsvLogger(str(telematics_path) + '.out.csv',
                                 buffer_size = 200,
-                                header = ['logging_time', 'frame_nr'] + HEADER_META,
+                                header = csv_header
                                 )
 
     self.calibration_logger = CsvLogger(str(telematics_path) + '.calibration.csv',
@@ -118,16 +109,21 @@ class VideoWorld(World):
     self.road_image = np.zeros((H, W, 3), dtype=np.uint8)
     self.wide_road_image = np.zeros((H, W, 3), dtype=np.uint8)
     self.max_steer_angle = MAX_STEER_ANGLE
+    self.sm = messaging.SubMaster(['carState','carControl','lateralPlan','longitudinalPlan', 'controlsState', 'modelV2', 'liveCalibration'])
 
-    self.sm = messaging.SubMaster(['carControl', 'controlsState', 'modelV2', 'liveCalibration'])
-
-    print(f"VideoWorld initialized with telematics data: {self.telematics_data.columns.values}")
+    if telematics_path is not None:
+      print(f"VideoWorld initialized with telematics data: {self.telematics_data.columns.values}")
+    else:
+      print("VideoWorld initialized without telematics data")
 
   def apply_controls(self, steer_angle, throttle_out, brake_out):
     # in the simulator mode, this is used to apply controls to the simulated vehicle.
     pass
 
   def read_sensors(self, state:SimulatorState):
+    state.is_engaged = True
+    state.valid=True
+
     if self.video_frame < len(self.telematics_data):
       state.is_engaged = True # sets openpilot to be engaged as driving, test this feature
       state.valid=True
@@ -151,9 +147,9 @@ class VideoWorld(World):
         state.user_brake = frame_data.brake
       if "torque" in frame_data:
         state.user_torque = frame_data.torque # currently set to 0 as not recorded in carla
-      if "left_blinker" in frame_data:
-        state.left_blinker = frame_data.left_blinker # currently set to False as not recorded in carla
-        state.right_blinker = frame_data.left_blinker # currently set to False as not recorded in carla
+      if "blinker_left" in frame_data:
+        state.left_blinker = frame_data.blinker_left
+        state.right_blinker = frame_data.blinker_right
     else:
       self.close()
 
@@ -176,6 +172,7 @@ class VideoWorld(World):
     # see cereal/log.capnp for the structure of the messages
     self.sm.update()
 
+    # calibration logging
     calibration_log_freq = 10
     if self.video_frame % calibration_log_freq == 0:
       csv_line_calib = [time()] + [self.video_frame] + [str(self.sm['liveCalibration'].calStatus),
@@ -187,14 +184,43 @@ class VideoWorld(World):
                                                         str(self.sm['liveCalibration'].rpyCalibSpread),
                                                         str(self.sm['liveCalibration'].wideFromDeviceEuler),
                                                         str(self.sm['liveCalibration'].height)]
-      print(csv_line_calib)
       self.calibration_logger.log(csv_line_calib)
-    # 'calStatus', ' calCycle', 'calPerc', 'validBlocks', 'extrinsicMatrix', 'rpyCalib', 'rpyCalibSpread', 'wideFromDeviceEuler','height
 
-    # meta_keys, meta_values = parse_struct(self.sm['modelV2'].meta.to_dict())
-    # if meta_keys == HEADER_META: # if expected format
-    #   csv_line = [time()] + [self.video_frame] + meta_values
-    #   self.csv_logger.log(csv_line)
-    # else: 
-    #   print(f"Not logging frame {self.video_frame}; metadata in unexpected format")
+    # meta logging
+    meta_keys, meta_values = parse_struct(self.sm['modelV2'].meta.to_dict())
+    longitudinalplan_keys, longitudinalplan_values = parse_struct(self.sm['longitudinalPlan'].to_dict(),remove_deprecated=True)
+    lateralplan_keys, lateralplan_values = parse_struct(self.sm['lateralPlan'].to_dict(),remove_deprecated=True)
+
+
+    csv_line = [time()] + [self.video_frame]
+
+    if meta_keys == HEADER_META: # if expected format
+       csv_line += meta_values
+    else:
+       csv_line += ['header mismatch']*len(HEADER_META)
+
+    if longitudinalplan_keys == HEADER_LONGITUDINALPLAN:
+      csv_line += longitudinalplan_values
+    else:
+      csv_line += ['header mismatch']*len(HEADER_LONGITUDINALPLAN)
+
+    if lateralplan_keys == HEADER_LATERALPLAN:
+      csv_line += lateralplan_values
+    else:
+      csv_line += ['header mismatch']*len(HEADER_LATERALPLAN)
+
+    # leads
+    if len(self.sm['modelV2'].leadsV3) > 0:
+      lead1 = str(self.sm['modelV2'].leadsV3[0].to_dict())
+      lead2 = str(self.sm['modelV2'].leadsV3[1].to_dict())
+      lead3 = str(self.sm['modelV2'].leadsV3[2].to_dict())
+      csv_line += [lead1, lead2, lead3]
+    else:
+      csv_line += ['']*3
+
+    csv_line += [self.sm['carState'].vEgo]
+    csv_line += [self.sm['carState'].leftBlinker]
+    csv_line += [self.sm['carState'].rightBlinker]
+
+    self.csv_logger.log(csv_line)
 
