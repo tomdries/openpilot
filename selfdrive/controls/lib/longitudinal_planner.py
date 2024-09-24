@@ -64,6 +64,7 @@ class LongitudinalPlanner:
     self.param_read_counter = 0
     self.read_param()
     self.personality = log.LongitudinalPersonality.standard
+    self.personality = log.LongitudinalPersonality.relaxed
 
   def read_param(self):
     try:
