@@ -1,19 +1,13 @@
-![openpilot on the comma 3X](https://github.com/commaai/openpilot/assets/4038174/f1081737-8718-4241-a22a-3ceba526361a)
+# Openpilot-video
 
-Table of Contents
-=======================
+What is this fork?
+------
 
-* [What is openpilot?](#what-is-openpilot)
-* [Running in a car](#running-on-a-dedicated-device-in-a-car)
-* [Running on PC](#running-on-pc)
-* [Community and Contributing](#community-and-contributing)
-* [User Data and comma Account](#user-data-and-comma-account)
-* [Safety and Testing](#safety-and-testing)
-* [Directory Structure](#directory-structure)
-* [Licensing](#licensing)
+This fork added a module for supporting playback of any forward-facing video file combined with a csv containing vehicle dynamics data (speed, steer, gas, etc.). It was developed for a demonstration paper with the goal of assessing pre-recorded human driving behaviour videos, by running an AI in the background, and using discrepancies between the AI and the human as indicators of human driving style such as aggressive driving behaviour. The data that can be replayed is available via the 4TU data repository (link).
 
----
+Installation instructions can be found in ./tools/README.md and running and replaying instructions in ./tools/sim/README.md.
 
+# Original Readme:
 What is openpilot?
 ------
 
