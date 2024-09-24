@@ -2,6 +2,7 @@
 
 What is this fork?
 ------
+[openpilot](http://github.com/commaai/openpilot) is an open source driver assistance system. 
 
 This fork added a module for supporting playback of any forward-facing video file combined with a csv containing vehicle dynamics data (speed, steer, gas, etc.). It was developed for a demonstration paper with the goal of assessing pre-recorded human driving behaviour videos, by running an AI in the background, and using discrepancies between the AI and the human as indicators of human driving style such as aggressive driving behaviour. The data that can be replayed is available via the 4TU data repository (link).
 
