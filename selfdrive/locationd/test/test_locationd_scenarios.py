@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pytest
 import unittest
 import numpy as np
 from collections import defaultdict
@@ -49,8 +50,7 @@ def get_select_fields_data(logs):
   return data
 
 
-def run_scenarios(scenario):
-  logs = list(LogReader(get_url(TEST_ROUTE, TEST_SEG_NUM)))
+def run_scenarios(scenario, logs):
   if scenario == Scenario.BASE:
     pass
 
@@ -98,12 +98,18 @@ def run_scenarios(scenario):
   return get_select_fields_data(logs), get_select_fields_data(replayed_logs)
 
 
+@pytest.mark.xdist_group("test_locationd_scenarios")
 class TestLocationdScenarios(unittest.TestCase):
   """
   Test locationd with different scenarios. In all these scenarios, we expect the following:
     - locationd kalman filter should never go unstable (we care mostly about yaw_rate, roll, gpsOK, inputsOK, sensorsOK)
     - faulty values should be ignored, with appropriate flags set
   """
+
+  @classmethod
+  def setUpClass(cls):
+    cls.logs = list(LogReader(get_url(TEST_ROUTE, TEST_SEG_NUM)))
+
   def test_base(self):
     """
     Test: unchanged log
@@ -111,7 +117,7 @@ class TestLocationdScenarios(unittest.TestCase):
       - yaw_rate: unchanged
       - roll: unchanged
     """
-    orig_data, replayed_data = run_scenarios(Scenario.BASE)
+    orig_data, replayed_data = run_scenarios(Scenario.BASE, self.logs)
     self.assertTrue(np.allclose(orig_data['yaw_rate'], replayed_data['yaw_rate'], atol=np.radians(0.2)))
     self.assertTrue(np.allclose(orig_data['roll'], replayed_data['roll'], atol=np.radians(0.5)))
 
@@ -123,7 +129,7 @@ class TestLocationdScenarios(unittest.TestCase):
       - roll:
       - gpsOK: False
     """
-    orig_data, replayed_data = run_scenarios(Scenario.GPS_OFF)
+    orig_data, replayed_data = run_scenarios(Scenario.GPS_OFF, self.logs)
     self.assertTrue(np.allclose(orig_data['yaw_rate'], replayed_data['yaw_rate'], atol=np.radians(0.2)))
     self.assertTrue(np.allclose(orig_data['roll'], replayed_data['roll'], atol=np.radians(0.5)))
     self.assertTrue(np.all(replayed_data['gps_flag'] == 0.0))
@@ -136,7 +142,7 @@ class TestLocationdScenarios(unittest.TestCase):
       - roll:
       - gpsOK: True for the first half, False for the second half
     """
-    orig_data, replayed_data = run_scenarios(Scenario.GPS_OFF_MIDWAY)
+    orig_data, replayed_data = run_scenarios(Scenario.GPS_OFF_MIDWAY, self.logs)
     self.assertTrue(np.allclose(orig_data['yaw_rate'], replayed_data['yaw_rate'], atol=np.radians(0.2)))
     self.assertTrue(np.allclose(orig_data['roll'], replayed_data['roll'], atol=np.radians(0.5)))
     self.assertTrue(np.diff(replayed_data['gps_flag'])[512] == -1.0)
@@ -149,7 +155,7 @@ class TestLocationdScenarios(unittest.TestCase):
       - roll:
       - gpsOK: False for the first half, True for the second half
     """
-    orig_data, replayed_data = run_scenarios(Scenario.GPS_ON_MIDWAY)
+    orig_data, replayed_data = run_scenarios(Scenario.GPS_ON_MIDWAY, self.logs)
     self.assertTrue(np.allclose(orig_data['yaw_rate'], replayed_data['yaw_rate'], atol=np.radians(0.2)))
     self.assertTrue(np.allclose(orig_data['roll'], replayed_data['roll'], atol=np.radians(1.5)))
     self.assertTrue(np.diff(replayed_data['gps_flag'])[505] == 1.0)
@@ -162,7 +168,7 @@ class TestLocationdScenarios(unittest.TestCase):
       - roll:
       - gpsOK: False for the middle section, True for the rest
     """
-    orig_data, replayed_data = run_scenarios(Scenario.GPS_TUNNEL)
+    orig_data, replayed_data = run_scenarios(Scenario.GPS_TUNNEL, self.logs)
     self.assertTrue(np.allclose(orig_data['yaw_rate'], replayed_data['yaw_rate'], atol=np.radians(0.2)))
     self.assertTrue(np.allclose(orig_data['roll'], replayed_data['roll'], atol=np.radians(0.5)))
     self.assertTrue(np.diff(replayed_data['gps_flag'])[213] == -1.0)
@@ -176,7 +182,7 @@ class TestLocationdScenarios(unittest.TestCase):
       - roll: 0
       - sensorsOK: False
     """
-    _, replayed_data = run_scenarios(Scenario.GYRO_OFF)
+    _, replayed_data = run_scenarios(Scenario.GYRO_OFF, self.logs)
     self.assertTrue(np.allclose(replayed_data['yaw_rate'], 0.0))
     self.assertTrue(np.allclose(replayed_data['roll'], 0.0))
     self.assertTrue(np.all(replayed_data['sensors_flag'] == 0.0))
@@ -189,7 +195,7 @@ class TestLocationdScenarios(unittest.TestCase):
       - roll: unchanged
       - inputsOK: False for some time after the spike, True for the rest
     """
-    orig_data, replayed_data = run_scenarios(Scenario.GYRO_SPIKE_MIDWAY)
+    orig_data, replayed_data = run_scenarios(Scenario.GYRO_SPIKE_MIDWAY, self.logs)
     self.assertTrue(np.allclose(orig_data['yaw_rate'], replayed_data['yaw_rate'], atol=np.radians(0.2)))
     self.assertTrue(np.allclose(orig_data['roll'], replayed_data['roll'], atol=np.radians(0.5)))
     self.assertTrue(np.diff(replayed_data['inputs_flag'])[500] == -1.0)
@@ -203,7 +209,7 @@ class TestLocationdScenarios(unittest.TestCase):
       - roll: 0
       - sensorsOK: False
     """
-    _, replayed_data = run_scenarios(Scenario.ACCEL_OFF)
+    _, replayed_data = run_scenarios(Scenario.ACCEL_OFF, self.logs)
     self.assertTrue(np.allclose(replayed_data['yaw_rate'], 0.0))
     self.assertTrue(np.allclose(replayed_data['roll'], 0.0))
     self.assertTrue(np.all(replayed_data['sensors_flag'] == 0.0))
@@ -214,7 +220,7 @@ class TestLocationdScenarios(unittest.TestCase):
     Test: an accelerometer spike in the middle of the segment
     Expected Result: Right now, the kalman filter is not robust to small spikes like it is to gyroscope spikes.
     """
-    orig_data, replayed_data = run_scenarios(Scenario.ACCEL_SPIKE_MIDWAY)
+    orig_data, replayed_data = run_scenarios(Scenario.ACCEL_SPIKE_MIDWAY, self.logs)
     self.assertTrue(np.allclose(orig_data['yaw_rate'], replayed_data['yaw_rate'], atol=np.radians(0.2)))
     self.assertTrue(np.allclose(orig_data['roll'], replayed_data['roll'], atol=np.radians(0.5)))
 

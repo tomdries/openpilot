@@ -40,9 +40,9 @@ def apply_a_weighting(measurements: np.ndarray) -> np.ndarray:
 
 
 class Mic:
-  def __init__(self, pm):
-    self.pm = pm
+  def __init__(self):
     self.rk = Ratekeeper(RATE)
+    self.pm = messaging.PubMaster(['microphone'])
 
     self.measurements = np.empty(0)
 
@@ -53,7 +53,7 @@ class Mic:
     self.spl_filter_weighted = FirstOrderFilter(0, 2.5, FILTER_DT, initialized=False)
 
   def update(self):
-    msg = messaging.new_message('microphone')
+    msg = messaging.new_message('microphone', valid=True)
     msg.microphone.soundPressure = float(self.sound_pressure)
     msg.microphone.soundPressureWeighted = float(self.sound_pressure_weighted)
 
@@ -93,11 +93,8 @@ class Mic:
         self.update()
 
 
-def main(pm=None):
-  if pm is None:
-    pm = messaging.PubMaster(['microphone'])
-
-  mic = Mic(pm)
+def main():
+  mic = Mic()
   mic.micd_thread()
 
 
